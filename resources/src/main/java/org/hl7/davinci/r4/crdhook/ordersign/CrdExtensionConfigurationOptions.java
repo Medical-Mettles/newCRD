@@ -17,4 +17,11 @@ public class CrdExtensionConfigurationOptions {
        + "clinical effect for which the patient has better coverage, that will incur lesser code",
       new Configuration().getAlternativeTherapy()
   );
+  public static final ConfigurationOption PRIOR_AUTHORISATION = new ConfigurationOption(
+	      "priorauth",
+	      "boolean",
+	      "Prior authorization",
+	      "Provides indications of whether prior authorization is required for the proposed order",
+	      new Configuration().getPriorAuth()
+	  );
 }

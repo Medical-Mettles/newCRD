@@ -14,4 +14,12 @@ public class Configuration {
   public Boolean getAlternativeTherapy() { return alternativeTherapy; }
 
   public void setAlternativeTherapy(Boolean alternativeTherapy) { this.alternativeTherapy = alternativeTherapy; }
+  
+  
+  @JsonProperty("priorauth")
+  private Boolean priorauth = true;
+
+  public Boolean getPriorAuth() { return priorauth; }
+
+  public void setPriorAuth(Boolean priorauth) { this.priorauth = priorauth; }
 }
