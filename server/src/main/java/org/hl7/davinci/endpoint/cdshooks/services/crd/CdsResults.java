@@ -12,17 +12,18 @@ import org.cdshooks.AlternativeTherapy;
 import org.cdshooks.CoverageRequirements;
 import org.cdshooks.DrugInteraction;
 import org.hl7.ShortNameMaps;
-import org.hl7.davinci.endpoint.cdshooks.services.crd.r4.OrderSignService;
 import org.hl7.davinci.endpoint.components.CardBuilder.CqlResultsForCard;
 import org.hl7.davinci.endpoint.config.YamlConfig;
 import org.hl7.davinci.endpoint.rules.CoverageRequirementRuleResult;
 import org.hl7.davinci.r4.CardTypes;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.BooleanType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.r4.model.ClaimResponse.AddedItemComponent;
-import org.hl7.fhir.r4.model.ClaimResponse.AdjudicationComponent;
+import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
+import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.ResourceType;
+import org.hl7.fhir.r4.model.StringType;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -31,10 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.context.FhirContext;
-import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
-import org.hl7.fhir.r4.model.Resource;
-import org.hl7.fhir.r4.model.StringType;
 
 public class CdsResults {
 	YamlConfig myConfig;
@@ -75,95 +72,104 @@ public class CdsResults {
 			AlternativeTherapy alternativeTherapy = new AlternativeTherapy();
 			alternativeTherapy.setApplies(false);
 			for (int k = 0; k < rObj.size(); k++) {
-				cqlResults.setRuleApplies(true);
+				cqlResults.setRuleApplies(false);
 				JSONObject obj = (JSONObject) rObj.get(k);
 				logger.info("tthe key set is: " + obj.keySet());
 				if (obj.containsKey("requestId")) {
 					coverageRequirements.setRequestId((String) obj.get("requestId"));
-					Resource requestResource = getResourcefromBundle(this.BundleResources,(String) obj.get("requestId"));
-					if (requestResource !=null) {
+					Resource requestResource = getResourcefromBundle(this.BundleResources,
+							(String) obj.get("requestId"));
+					if (requestResource != null) {
 						cqlResults.setRequest(requestResource);
 					}
-					
+
 				}
 				if (obj.containsKey("template")) {
-					
+
 					String questionaire = (String) obj.get("template");
-					
-					if (questionaire !=null) {
+
+					if (questionaire != null) {
 						coverageRequirements.setQuestionnaireOrderUri(questionaire);
 					}
-					
+
 				}
 				String humanReadableTopic = StringUtils.join(StringUtils.splitByCharacterTypeCamelCase(topic), ' ');
 				if (obj.containsKey("configuration")) {
+					
 					JSONObject params = (JSONObject) obj.get("configuration");
 
-					Parameters cqlParams = (Parameters) fhirContext.newJsonParser()
-							.parseResource(params.toJSONString());
+					Resource resultParams = (Resource) fhirContext.newJsonParser().parseResource(params.toJSONString());
+					logger.info("resource type is"+resultParams.getResourceType().name());
+					if (resultParams.getResourceType().compareTo(ResourceType.Parameters)==0) {
+						cqlResults.setRuleApplies(true);
+						Parameters cqlParams = (Parameters)resultParams;
+						// If Final Decision is Yes -- Prior Auth is approved
 
-					// If Final Decision is Yes -- Prior Auth is approved
+						// check If Prior Auth is required
+						coverageRequirements
+								.setPriorAuthRequired(getCQLBooleanResults(cqlParams, CardTypes.PRIOR_AUTH.getCode()));
+						// check if Documentation is required
+						coverageRequirements.setDocumentationRequired(
+								getCQLBooleanResults(cqlParams, CardTypes.DOCUMENTATION.getCode()));
 
-					// check If Prior Auth is required
-					coverageRequirements
-							.setPriorAuthRequired(getCQLBooleanResults(cqlParams, CardTypes.PRIOR_AUTH.getCode()));
-					// check if Documentation is required
-					coverageRequirements.setDocumentationRequired(
-							getCQLBooleanResults(cqlParams, CardTypes.DOCUMENTATION.getCode()));
-
-					// if prior auth, supercede the documentation required
-					if (coverageRequirements.isPriorAuthRequired()) {
-						logger.info("Prior Auth Required");
-						Object desc = getCQLResults(cqlParams, CardTypes.PRIOR_AUTH.getCode() + DESC);
-						coverageRequirements.setSummary(humanReadableTopic + ": Prior Authorization required.");
-						if (desc != null) {
-							coverageRequirements.setDetails(((StringType) desc).asStringValue());
-						}
-
-						// check if prior auth is automatically approved
-						if ((((StringType) getCQLResults(cqlParams, "FinalDecision")).asStringValue()).equals("YES")) {
-							coverageRequirements.setPriorAuthApproved(true);
-							if (coverageRequirements.isPriorAuthApproved()) {
-								coverageRequirements.generatePriorAuthId();
-								logger.info("Prior Auth Approved: " + coverageRequirements.getPriorAuthId());
-								coverageRequirements.setSummary(humanReadableTopic + ": Prior Authorization approved.")
-										.setDetails("Prior Authorization approved, ID is "
-												+ coverageRequirements.getPriorAuthId());
+						// if prior auth, supercede the documentation required
+						if (coverageRequirements.isPriorAuthRequired()) {
+							logger.info("Prior Auth Required");
+							Object desc = getCQLResults(cqlParams, CardTypes.PRIOR_AUTH.getCode() + DESC);
+							coverageRequirements.setSummary(humanReadableTopic + ": Prior Authorization required.");
+							if (desc != null) {
+								coverageRequirements.setDetails(((StringType) desc).asStringValue());
 							}
+
+							// check if prior auth is automatically approved
+							if ((((StringType) getCQLResults(cqlParams, "FinalDecision")).asStringValue())
+									.equals("YES")) {
+								coverageRequirements.setPriorAuthApproved(true);
+								if (coverageRequirements.isPriorAuthApproved()) {
+									coverageRequirements.generatePriorAuthId();
+									logger.info("Prior Auth Approved: " + coverageRequirements.getPriorAuthId());
+									coverageRequirements
+											.setSummary(humanReadableTopic + ": Prior Authorization approved.")
+											.setDetails("Prior Authorization approved, ID is "
+													+ coverageRequirements.getPriorAuthId());
+								}
+							}
+
+						} else if (coverageRequirements.isDocumentationRequired()) {
+							logger.info("Documentation Required");
+							Object desc = getCQLResults(cqlParams, CardTypes.DOCUMENTATION.getCode() + DESC);
+							coverageRequirements.setSummary(humanReadableTopic + ": Documentation Required.");
+							if (desc != null) {
+								coverageRequirements.setDetails(((StringType) desc).asStringValue());
+							}
+
+						} else {
+							logger.info("No Prior Auth or Documentation Required");
+							coverageRequirements.setSummary(humanReadableTopic + ": No Prior Authorization required.")
+									.setDetails("No Prior Authorization required for " + humanReadableTopic + ".");
 						}
 
-					} else if (coverageRequirements.isDocumentationRequired()) {
-						logger.info("Documentation Required");
-						Object desc = getCQLResults(cqlParams, CardTypes.DOCUMENTATION.getCode() + DESC);
-						coverageRequirements.setSummary(humanReadableTopic + ": Documentation Required.");
-						if (desc != null) {
-							coverageRequirements.setDetails(((StringType) desc).asStringValue());
-						}
+						alternativeTherapy.setApplies(false);
 
+						// process the alternative therapies
+						try {
+							if (getCQLResults(cqlParams, "ALTERNATIVE_THERAPY") != null) {
+								Object ac = getCQLResults(cqlParams, "ALTERNATIVE_THERAPY");
+
+								Code code = (Code) ac;
+								logger.info("alternate therapy suggested: " + code.getDisplay() + " (" + code.getCode()
+										+ " / " + ShortNameMaps.CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME.inverse()
+												.get(code.getSystem()).toUpperCase()
+										+ ")");
+
+								alternativeTherapy.setApplies(true).setCode(code.getCode()).setSystem(code.getSystem())
+										.setDisplay(code.getDisplay());
+							}
+						} catch (Exception e) {
+							logger.info("-- No alternative therapy defined");
+						}
 					} else {
-						logger.info("No Prior Auth or Documentation Required");
-						coverageRequirements.setSummary(humanReadableTopic + ": No Prior Authorization required.")
-								.setDetails("No Prior Authorization required for " + humanReadableTopic + ".");
-					}
-
-					alternativeTherapy.setApplies(false);
-
-					// process the alternative therapies
-					try {
-						if (getCQLResults(cqlParams, "ALTERNATIVE_THERAPY") != null) {
-							Object ac = getCQLResults(cqlParams, "ALTERNATIVE_THERAPY");
-
-							Code code = (Code) ac;
-							logger.info("alternate therapy suggested: " + code.getDisplay() + " (" + code.getCode()
-									+ " / " + ShortNameMaps.CODE_SYSTEM_SHORT_NAME_TO_FULL_NAME.inverse()
-											.get(code.getSystem()).toUpperCase()
-									+ ")");
-
-							alternativeTherapy.setApplies(true).setCode(code.getCode()).setSystem(code.getSystem())
-									.setDisplay(code.getDisplay());
-						}
-					} catch (Exception e) {
-						logger.info("-- No alternative therapy defined");
+						logger.info("Parameters resource not found");
 					}
 
 				}
@@ -185,30 +191,27 @@ public class CdsResults {
 	}
 
 	private Resource getResourcefromBundle(Bundle bundle, String resourceId) {
-        // System.out.println("looking for resource: " + resourceId);
-        Resource res = null;
-        for (BundleEntryComponent entry : bundle.getEntry()) {
-            // System.out.println("the entry is :" + entry.getResource().fhirType());
-            if (entry.getResource().fhirType() == "Bundle") {
-                res = getResourcefromBundle((Bundle) entry.getResource(), resourceId);
-                if (res != null) {
-                    return res;
-                }
-            }
-            if (entry.getResource().getIdElement() != null) {
-                if (entry.getResource().getIdElement().getIdPart().equals(resourceId)) {
-                    // System.out.println("found resource for: " + resourceId + "----"
-                    //         + ctx.newJsonParser().encodeResourceToString(entry.getResource()));
-                    return entry.getResource();
-                }
-            }
+		// System.out.println("looking for resource: " + resourceId);
+		Resource res = null;
+		for (BundleEntryComponent entry : bundle.getEntry()) {
+			// System.out.println("the entry is :" + entry.getResource().fhirType());
+			if (entry.getResource().fhirType() == "Bundle") {
+				res = getResourcefromBundle((Bundle) entry.getResource(), resourceId);
+				if (res != null) {
+					return res;
+				}
+			}
+			if (entry.getResource().getIdElement() != null) {
+				if (entry.getResource().getIdElement().getIdPart().equals(resourceId)) {
+					// System.out.println("found resource for: " + resourceId + "----"
+					// + ctx.newJsonParser().encodeResourceToString(entry.getResource()));
+					return entry.getResource();
+				}
+			}
 
-        }
-        return null;
-    }
-
-
-	
+		}
+		return null;
+	}
 
 	private boolean getCQLBooleanResults(Parameters cqlParams, String code) {
 		for (ParametersParameterComponent param : cqlParams.getParameter()) {
@@ -274,7 +277,5 @@ public class CdsResults {
 		}
 		return cqlResObj;
 	}
-	
-	
 
 }
