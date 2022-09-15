@@ -1,11 +1,14 @@
 allprojects {
 
     apply plugin: 'idea'
+    apply plugin: 'war'
 
     apply plugin: 'checkstyle'
     checkstyle {
         toolVersion "8.11"
     }
+    
+    
 
     repositories {
         mavenCentral()

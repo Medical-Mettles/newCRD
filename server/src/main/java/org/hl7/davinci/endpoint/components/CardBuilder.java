@@ -368,7 +368,7 @@ public class CardBuilder {
 
   private Source createSource(CardTypes cardType) {
     Source source = new Source();
-    source.setLabel("Da Vinci CRD Reference Implementation");
+    source.setLabel("Mettles Solutions CRD");
     source.setTopic(cardType.getCoding());
     return source;
   }

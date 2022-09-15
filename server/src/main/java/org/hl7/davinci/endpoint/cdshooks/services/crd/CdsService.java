@@ -30,6 +30,9 @@ import org.hl7.davinci.endpoint.rules.CoverageRequirementRuleResult;
 import org.hl7.davinci.r4.CardTypes;
 import org.hl7.davinci.r4.CoverageGuidance;
 import org.hl7.davinci.r4.crdhook.orderselect.OrderSelectRequest;
+import org.hl7.davinci.r4.crdhook.ordersign.OrderSignRequest;
+import org.hl7.fhir.r4.model.Bundle;
+import org.json.simple.JSONArray;
 import org.hl7.davinci.r4.crdhook.DiscoveryExtension;
 import org.opencds.cqf.cql.engine.execution.Context;
 import org.slf4j.Logger;
@@ -163,11 +166,16 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
 
     CdsResponse response = new CdsResponse();
     CardBuilder cardBuilder = new CardBuilder();
-
+    Bundle resources = getPrefetchResources(request);
+    
+    		
     // CQL Fetched
     List<CoverageRequirementRuleResult> lookupResults;
+    
     try {
-      lookupResults = this.createCqlExecutionContexts(request, fileStore, applicationBaseUrl.toString() + "/");
+    	
+      lookupResults = new CdsResults().executeCds(resources,myConfig);
+//      lookupResults = this.createCqlExecutionContexts(request, fileStore, applicationBaseUrl.toString() + "/");
       requestLog.advanceTimeline(requestService);
     } catch (RequestIncompleteException e) {
       logger.warn("RequestIncompleteException " + request);
@@ -195,7 +203,8 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
     boolean foundApplicableRule = false;
     for (CoverageRequirementRuleResult lookupResult : lookupResults) {
       requestLog.addTopic(requestService, lookupResult.getTopic());
-      CqlResultsForCard results = executeCqlAndGetRelevantResults(lookupResult.getContext(), lookupResult.getTopic());
+//      CqlResultsForCard results = executeCqlAndGetRelevantResults(lookupResult.getContext(), lookupResult.getTopic());
+      CqlResultsForCard results = lookupResult.getCqlResultsForCard();
       CoverageRequirements coverageRequirements = results.getCoverageRequirements();
       cardBuilder.setDeidentifiedResourcesContainsPhi(lookupResult.getDeidentifiedResourceContainsPhi());
 
@@ -427,5 +436,10 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
    * Delegates query batch request to child classes based on their prefetch types.
    */
   protected abstract void attempQueryBatchRequest(requestTypeT request, QueryBatchRequest qbr);
+
+public Bundle getPrefetchResources(@Valid requestTypeT request) {
+	// TODO Auto-generated method stub
+	return null;
+}
 
 }

@@ -28,7 +28,7 @@ public class YamlConfig {
   private boolean appendParamsToSmartLaunchUrl;
   private String hostOrg;
   private boolean embedCqlInLibrary;
-
+  private String mettlesCDSUrl;
   private CdsConnect cdsConnect;
 
   private GitHubConfig gitHubConfig;
@@ -111,4 +111,8 @@ public class YamlConfig {
   public String getValueSetCachePath() { return valueSetCachePath; }
 
   public void setValueSetCachePath(String valueSetCachePath) { this.valueSetCachePath = valueSetCachePath; }
+
+  public String getMettlesCDSUrl() { return mettlesCDSUrl; }
+
+  public void setMettlesCDSUrl(String mettlesCDSUrl) { this.mettlesCDSUrl = mettlesCDSUrl; }
 }

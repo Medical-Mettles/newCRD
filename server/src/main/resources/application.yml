@@ -77,3 +77,6 @@ hostOrg: default
 
 # Configure whether Query Batch Requests will be used to backfill potentially missing prefetch resources.
 queryBatchRequest: true
+
+mettlesCDSUrl: https://fhir-dev.mettles.com/cds/executeCRD
+

@@ -75,6 +75,35 @@ public class OrderSignService extends CdsService<OrderSignRequest> {
     }
     return results;
   }
+  
+  @Override
+  public Bundle getPrefetchResources(OrderSignRequest request) {
+    System.out.println("Calling from sign" );
+
+    Bundle bundle = request.getPrefetch().getDeviceRequestBundle();
+    if (bundle == null){
+      bundle = request.getPrefetch().getServiceRequestBundle();
+    }
+    if (bundle == null){
+      bundle = request.getPrefetch().getMedicationRequestBundle();
+    }
+    // if (bundle != null) {
+    //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
+    // }
+    // bundle = request.getPrefetch().getServiceRequestBundle();
+    // if (bundle != null) {
+    //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
+    // }
+    // bundle = request.getPrefetch().getMedicationRequestBundle();
+    // if (bundle != null) {
+    //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
+    // }
+    // bundle = request.getPrefetch().getSupplyRequestBundle();
+    // if (bundle != null) {
+    //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
+    // }
+    return bundle;
+  }
 
   protected CqlResultsForCard executeCqlAndGetRelevantResults(Context context, String topic) {
     CqlResultsForCard results = new CqlResultsForCard();
