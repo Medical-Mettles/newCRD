@@ -316,7 +316,11 @@ public class CardBuilder {
     StringType author = new StringType();
     author.setValue(card.getSource().getLabel());
     annotation.setAuthor(author);
-    String text = card.getSummary() + ": " + card.getDetail();
+    String text = card.getSummary(); 
+    if (card.getDetail()!=null) {
+    	text = text + ": " + card.getDetail();
+    } 
+     
     annotation.setText(text);
     annotation.setTime(now); // set the date and time to now
     IBaseResource resource = FhirRequestProcessor.addNoteToRequest(request, annotation);

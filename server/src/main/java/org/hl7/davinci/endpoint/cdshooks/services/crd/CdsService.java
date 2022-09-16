@@ -363,7 +363,10 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
   private Link smartLinkBuilder(String patientId, String fhirBase, URL applicationBaseUrl, String questionnaireUri,
       String reqResourceId, CoverageRequirementRuleCriteria criteria, boolean priorAuthRequired, String label) {
     URI configLaunchUri = myConfig.getLaunchUrl();
-    questionnaireUri = applicationBaseUrl + "/fhir/r4/" + questionnaireUri;
+    if (!questionnaireUri.startsWith("http")) {
+    	questionnaireUri = applicationBaseUrl + "/fhir/r4/" + questionnaireUri;
+    }
+    
 
     String launchUrl;
     if (myConfig.getLaunchUrl().isAbsolute()) {
@@ -392,7 +395,8 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
     // request is the ID of the device request or medrec (not the full URI like the
     // IG says, since it should be taken from fhirBase
 
-    String appContext = "template=" + questionnaireUri + "&request=" + reqResourceId;
+    //Change template to questionnaire and request to order
+    String appContext = "questionnaire=" + questionnaireUri + "&order=" + reqResourceId;
     appContext = appContext + "&fhirpath=" + applicationBaseUrl + "/fhir/";
 
     appContext = appContext + "&priorauth=" + (priorAuthRequired ? "true" : "false");

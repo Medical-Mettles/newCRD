@@ -38,7 +38,7 @@ public class CdsResults {
 	FhirContext fhirContext = FhirContext.forR4();
 	private Bundle BundleResources;
 	static final Logger logger = LoggerFactory.getLogger(CdsResults.class);
-	static final String DESC = "description";
+	static final String DESC = "-description";
 
 	public CdsResults() {
 
@@ -103,14 +103,28 @@ public class CdsResults {
 					if (resultParams.getResourceType().compareTo(ResourceType.Parameters)==0) {
 						cqlResults.setRuleApplies(true);
 						Parameters cqlParams = (Parameters)resultParams;
+						
+						//Get Topic
+						Object cqltopic = getCQLResults(cqlParams, "topic" );
+						if (cqltopic != null) {
+							humanReadableTopic = ((StringType) cqltopic).asStringValue();
+						}
+						
+						
 						// If Final Decision is Yes -- Prior Auth is approved
 
 						// check If Prior Auth is required
-						coverageRequirements
-								.setPriorAuthRequired(getCQLBooleanResults(cqlParams, CardTypes.PRIOR_AUTH.getCode()));
+						boolean auth = getCQLBooleanResults(cqlParams, CardTypes.PRIOR_AUTH.getCode());
+						if (auth) {
+							coverageRequirements.setPriorAuthRequired(true);
+						}
+						
 						// check if Documentation is required
-						coverageRequirements.setDocumentationRequired(
-								getCQLBooleanResults(cqlParams, CardTypes.DOCUMENTATION.getCode()));
+						boolean doc = getCQLBooleanResults(cqlParams, CardTypes.DOCUMENTATION.getCode());
+						if (doc) {
+							coverageRequirements.setDocumentationRequired(true);
+						}
+						
 
 						// if prior auth, supercede the documentation required
 						if (coverageRequirements.isPriorAuthRequired()) {
