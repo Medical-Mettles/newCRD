@@ -136,18 +136,22 @@ public class CdsResults {
 							}
 
 							// check if prior auth is automatically approved
-							if ((((StringType) getCQLResults(cqlParams, "FinalDecision")).asStringValue())
-									.equals("YES")) {
-								coverageRequirements.setPriorAuthApproved(true);
-								if (coverageRequirements.isPriorAuthApproved()) {
-									coverageRequirements.generatePriorAuthId();
-									logger.info("Prior Auth Approved: " + coverageRequirements.getPriorAuthId());
-									coverageRequirements
-											.setSummary(humanReadableTopic + ": Prior Authorization approved.")
-											.setDetails("Prior Authorization approved, ID is "
-													+ coverageRequirements.getPriorAuthId());
-								}
+							Object finalDecision = getCQLResults(cqlParams, "FinalDecision");
+							if (finalDecision != null) {
+								String decision = ((StringType) finalDecision).asStringValue();
+										if (decision.equals("YES")) {
+											coverageRequirements.setPriorAuthApproved(true);
+											if (coverageRequirements.isPriorAuthApproved()) {
+												coverageRequirements.generatePriorAuthId();
+												logger.info("Prior Auth Approved: " + coverageRequirements.getPriorAuthId());
+												coverageRequirements
+														.setSummary(humanReadableTopic + ": Prior Authorization approved.")
+														.setDetails("Prior Authorization approved, ID is "
+																+ coverageRequirements.getPriorAuthId());
+											}
+										}
 							}
+							
 
 						} else if (coverageRequirements.isDocumentationRequired()) {
 							logger.info("Documentation Required");
