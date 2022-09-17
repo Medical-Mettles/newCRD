@@ -30,6 +30,12 @@ import org.json.simple.parser.JSONParser;
 import org.opencds.cqf.cql.engine.runtime.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.hl7.fhir.r4.model.Coverage;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.MedicationRequest;
+import org.hl7.fhir.r4.model.ServiceRequest;
+import org.hl7.fhir.r4.model.DeviceRequest;
+import org.hl7.davinci.endpoint.rules.CoverageRequirementRuleCriteria;
 
 import ca.uhn.fhir.context.FhirContext;
 
@@ -60,6 +66,7 @@ public class CdsResults {
 	private List<CoverageRequirementRuleResult> coverageResults(JSONArray resultobj) {
 		String topic = "";
 		List<CoverageRequirementRuleResult> coverageRules = new ArrayList<>();
+		List<Reference> coverageRef = null;
 		System.out.println("the sie is: " + resultobj.size());
 		for (int j = 0; j < resultobj.size(); j++) {
 
@@ -79,6 +86,40 @@ public class CdsResults {
 					coverageRequirements.setRequestId((String) obj.get("requestId"));
 					Resource requestResource = getResourcefromBundle(this.BundleResources,
 							(String) obj.get("requestId"));
+					if (requestResource.fhirType().equals("ServiceRequest")) {
+						ServiceRequest resource = (ServiceRequest) requestResource;
+						coverageRef = resource.getInsurance();
+			
+					}
+					if (requestResource.fhirType().equals("DeviceRequest")) {
+						DeviceRequest resource = (DeviceRequest) requestResource;
+						coverageRef = resource.getInsurance();
+					}
+					if (requestResource.fhirType().equals("MedicationRequest")) {
+						MedicationRequest resource = (MedicationRequest) requestResource;
+						coverageRef = resource.getInsurance();
+			
+					}
+					if (coverageRef != null) {
+						for (Reference ref : coverageRef) {
+							// System.out.println("ref printing: " + ref.getReference());
+							String coverage = ref.getReference().split("Coverage/")[1];
+							Coverage res = (Coverage) getResourcefromBundle(this.BundleResources, coverage);
+							if (res != null) {
+								Reference insurerRef = res.getPayorFirstRep();
+								if (insurerRef != null) {
+									String insurerId = insurerRef.getReference().split("Organization/")[1];
+									if (insurerId != null) {
+										//return getResourcefromBundle(this.orderResources, insurerId);
+										CoverageRequirementRuleCriteria newCriteria = new CoverageRequirementRuleCriteria();
+										newCriteria.setPayorId(insurerId);
+										coverageRuleResult.setCriteria(newCriteria);
+									}
+									
+								}
+							}
+						}
+					}
 					if (requestResource != null) {
 						cqlResults.setRequest(requestResource);
 					}
