@@ -317,10 +317,11 @@ public class Utilities {
 
     Extension providerExtension = new Extension();
     providerExtension.setUrl("http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemAuthorizedProvider");
-    providerExtension.addExtension(
-        new Extension()
-            .setUrl("provider")
-            .setValue(new Reference().setReference(convertIdToReference(providerId, "Practitioner").getReference())));
+    System.out.println("**********Provide id"+providerId);
+    // providerExtension.addExtension(
+    //     new Extension()
+    //         .setUrl("provider")
+    //         .setValue(new Reference().setReference(convertIdToReference(providerId, "Practitioner").getReference())));
     itemComponent.addExtension(providerExtension);
 
     itemComponent.setItemSequence(1);
