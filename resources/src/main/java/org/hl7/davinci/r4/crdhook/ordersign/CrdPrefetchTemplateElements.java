@@ -12,7 +12,8 @@ public class CrdPrefetchTemplateElements {
   public static final PrefetchTemplateElement COVERAGE_REQUEST_BUNDLE = new PrefetchTemplateElement(
       "coverageBundle",
       Bundle.class,
-      "Coverage?patient={{context.patientId}}");
+      "Coverage?patient={{context.patientId}}" 
+      + "&_include=Coverage:payor" );
 
   public static final PrefetchTemplateElement DEVICE_REQUEST_BUNDLE = new PrefetchTemplateElement(
       "deviceRequestBundle",

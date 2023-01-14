@@ -254,6 +254,11 @@ public class FhirRequestProcessor {
         break;
       default:
         throw new RuntimeException("Unexpected resource type for draft order request. Given " + requestType + ".");
+        /*addNonDuplicateResourcesToBundle(crdResponse.getCoverageBundle(), resourcesToAdd);
+        addNonDuplicateResourcesToBundle(crdResponse.getServiceRequestBundle(), resourcesToAdd);
+        addNonDuplicateResourcesToBundle(crdResponse.getMedicationRequestBundle(), resourcesToAdd);
+        addNonDuplicateResourcesToBundle(crdResponse.getDeviceRequestBundle(), resourcesToAdd);*/
+
     }
   }
 
@@ -261,12 +266,14 @@ public class FhirRequestProcessor {
    * Adds non-duplicate resources that do not already exist in the bundle to the bundle.
    */
   private static void addNonDuplicateResourcesToBundle(Bundle bundle, List<BundleEntryComponent> resourcesToAdd) {
+    if (bundle != null) {
     for (BundleEntryComponent resourceEntry : resourcesToAdd) {
       if (!bundle.getEntry().stream()
           .anyMatch(bundleEntry -> bundleEntry.getResource().getId().equals(resourceEntry.getResource().getId()))) {
         bundle.addEntry(resourceEntry);
       }
     }
+  }
   }
 
   /**
@@ -491,19 +498,20 @@ public class FhirRequestProcessor {
 
   public static Reference getCoverageFromRequest(IBaseResource request) {
     Reference coverage = null;
-
+    List<Reference> insurance = null;
     switch (request.fhirType()) {
       case "DeviceRequest":
         DeviceRequest deviceRequest = ((DeviceRequest) request).copy();
-        coverage = deviceRequest.getInsurance().get(0);
+        insurance = deviceRequest.getInsurance();
+
         break;
       case "MedicationRequest":
         MedicationRequest medicationRequest = ((MedicationRequest) request).copy();
-        coverage = medicationRequest.getInsurance().get(0);
+        insurance = medicationRequest.getInsurance();
         break;
       case "ServiceRequest":
         ServiceRequest serviceRequest = ((ServiceRequest) request).copy();
-        coverage = serviceRequest.getInsurance().get(0);
+        insurance = serviceRequest.getInsurance();
         break;
       case "MedicationDispense":
       case "Appointment":
@@ -514,6 +522,9 @@ public class FhirRequestProcessor {
         logger.info("Unsupported fhir R4 resource type (" + request.fhirType() + ") when retrieving coverage");
         throw new NoCoverageException("No coverage found within fhir R4 resource type " + request.fhirType());
     }
+    if (insurance != null && insurance.size()>0) {
+      coverage = insurance.get(0);
+    } 
 
     return coverage;
   }

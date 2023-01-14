@@ -445,5 +445,9 @@ public Bundle getPrefetchResources(@Valid requestTypeT request) {
 	// TODO Auto-generated method stub
 	return null;
 }
+protected Bundle  checkUpdateBundle(Bundle bundle, Bundle draftOrders) {
+  
+  return bundle;
+}
 
 }

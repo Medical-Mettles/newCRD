@@ -29,12 +29,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /**
- * A Query Batch Request can be used to populate fields in a CDS Request that a Prefetch may have missed.
+ * A Query Batch Request can be used to populate fields in a CDS Request that a
+ * Prefetch may have missed.
  */
 public class QueryBatchRequest {
 
   private static final Logger logger = LoggerFactory.getLogger(QueryBatchRequest.class);
   private static final String PRACTIONER_ROLE = "PractitionerRole";
+  private static final String COVERAGE = "Coverage";
 
   private final FhirComponentsT fhirComponents;
 
@@ -43,9 +45,12 @@ public class QueryBatchRequest {
   }
 
   /**
-   * Backfills the missing required values of the response that prefetch may have missed.
-   * This implementation pulls the IDs of the required references from the request object's draft
-   * orders, checks which of those values are missing from the current CRD response, builds the
+   * Backfills the missing required values of the response that prefetch may have
+   * missed.
+   * This implementation pulls the IDs of the required references from the request
+   * object's draft
+   * orders, checks which of those values are missing from the current CRD
+   * response, builds the
    * Query Batch JSON request using
    * http://build.fhir.org/ig/HL7/davinci-crd/hooks.html#fhir-resource-access,
    * then populates the CRD response with the response from the Query Batch.
@@ -56,20 +61,77 @@ public class QueryBatchRequest {
     Bundle draftOrdersBundle = cdsRequest.getContext().getDraftOrders();
 
     // Perform the query batch request for each of the draft orders.
-    for(BundleEntryComponent bec : draftOrdersBundle.getEntry()) {
+    for (BundleEntryComponent bec : draftOrdersBundle.getEntry()) {
       this.performBundleQueryBatchRequest(bec.getResource(), crdPrefetch, cdsRequest);
     }
+    /*
+     * if (crdPrefetch.getCoverageBundle() != null) {
+     * for(BundleEntryComponent bec : crdPrefetch.getCoverageBundle().getEntry()) {
+     * this.performBundleQueryBatchRequest(bec.getResource(), crdPrefetch,
+     * cdsRequest);
+     * }
+     * }
+     * if (crdPrefetch.getServiceRequestBundle() != null) {
+     * for(BundleEntryComponent bec :
+     * crdPrefetch.getServiceRequestBundle().getEntry()) {
+     * this.performBundleQueryBatchRequest(bec.getResource(), crdPrefetch,
+     * cdsRequest);
+     * }
+     * }
+     * if (crdPrefetch.getDeviceRequestBundle() != null) {
+     * for(BundleEntryComponent bec :
+     * crdPrefetch.getDeviceRequestBundle().getEntry()) {
+     * this.performBundleQueryBatchRequest(bec.getResource(), crdPrefetch,
+     * cdsRequest);
+     * }
+     * }
+     * if (crdPrefetch.getMedicationRequestBundle() != null) {
+     * for(BundleEntryComponent bec :
+     * crdPrefetch.getMedicationRequestBundle().getEntry()) {
+     * this.performBundleQueryBatchRequest(bec.getResource(), crdPrefetch,
+     * cdsRequest);
+     * }
+     * }
+     */
+
   }
 
   private void performBundleQueryBatchRequest(Resource resource, CrdPrefetch crdResponse, CdsRequest<?, ?> cdsRequest) {
     ResourceType requestType = resource.getResourceType();
     // The list of references that should be queried in the batch request.
+    logger.info("***** ***** resource type", requestType.name());
     List<String> requiredReferences = new ArrayList<String>();
     // Extract the references by iterating through the JSON.
     Gson gson = new Gson();
     final JsonObject jsonObject = gson.toJsonTree(resource).getAsJsonObject();
     for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
+
       FhirRequestProcessor.extractReferenceIds(requiredReferences, entry.getValue());
+    }
+    List<Coverage> coverages = new ArrayList<>();
+    if (crdResponse.getCoverageBundle() != null) {
+      coverages = FhirRequestProcessor.extractCoverageFromBundle(crdResponse.getCoverageBundle());
+    }
+    if (crdResponse.getDeviceRequestBundle() != null) {
+      coverages = FhirRequestProcessor.extractCoverageFromBundle(crdResponse.getDeviceRequestBundle());
+    }
+    if (crdResponse.getServiceRequestBundle() != null) {
+      coverages = FhirRequestProcessor.extractCoverageFromBundle(crdResponse.getServiceRequestBundle());
+    }
+    if (crdResponse.getMedicationRequestBundle() != null) {
+      coverages = FhirRequestProcessor.extractCoverageFromBundle(crdResponse.getMedicationRequestBundle());
+    }
+    for (Coverage coverage : coverages) {
+      gson = new Gson();
+      final JsonObject cjsonObject = gson.toJsonTree(coverage).getAsJsonObject();
+      for (Map.Entry<String, JsonElement> entry : cjsonObject.entrySet()) {
+
+        FhirRequestProcessor.extractReferenceIds(requiredReferences, entry.getValue());
+      }
+    }
+    Coverage preferredInsurance = null;
+    if (coverages.size() > 0) {
+      preferredInsurance = coverages.get(0);
     }
 
     // Filter out references that already exist in the CRD Response.
@@ -91,7 +153,8 @@ public class QueryBatchRequest {
     Bundle queryResponseBundle = null;
     try {
       logger.info("Executing Query Batch Request: " + queryBatchRequestBody);
-      queryResponseBundle = (Bundle) FhirRequestProcessor.executeFhirQueryBody(queryBatchRequestBody, cdsRequest, this.fhirComponents, HttpMethod.POST);
+      queryResponseBundle = (Bundle) FhirRequestProcessor.executeFhirQueryBody(queryBatchRequestBody, cdsRequest,
+          this.fhirComponents, HttpMethod.POST);
       queryResponseBundle = extractNestedBundledResources(queryResponseBundle);
       logger.info("Extracted Query Batch Resources: "
           + (queryResponseBundle).getEntry().stream().map(entry -> entry.getResource()).collect(Collectors.toList()));
@@ -108,7 +171,10 @@ public class QueryBatchRequest {
     // Coverage and Subject are not automatically being
     // linked to the request object. It seems to somehow automatically link during
     // standard prefetch, but not here so we're doing it manually.
-    List<Coverage> coverages = FhirRequestProcessor.extractCoverageFromBundle(queryResponseBundle);
+    coverages = FhirRequestProcessor.extractCoverageFromBundle(queryResponseBundle);
+    if (coverages.size() == 0) {
+      coverages.add(preferredInsurance);
+    }
     List<Patient> patients = FhirRequestProcessor.extractPatientsFromBundle(queryResponseBundle);
     FhirRequestProcessor.addInsuranceAndSubject(resource, patients, coverages);
 
@@ -132,6 +198,9 @@ public class QueryBatchRequest {
       if (reference.contains(PRACTIONER_ROLE)) {
         reference = QueryBatchRequest.buildPractionerRoleQuery(reference);
       }
+      if (reference.contains(COVERAGE)) {
+        reference = QueryBatchRequest.buildCoverageQuery(reference);
+      }
       BundleEntryComponent entry = new BundleEntryComponent();
       BundleEntryRequestComponent request = new BundleEntryRequestComponent();
       request.setMethod(HTTPVerb.GET);
@@ -153,6 +222,20 @@ public class QueryBatchRequest {
     String referenceId = referenceIdSplit[referenceIdSplit.length - 1];
     String query = "PractitionerRole?_id=" + referenceId
         + "&_include=PractitionerRole:organization&_include=PractitionerRole:practitioner&_include=PractitionerRole:location";
+    return query;
+  }
+
+  /**
+   * Adds support for PractitionerRole nested requests.
+   * 
+   * @param reference
+   * @return
+   */
+  private static String buildCoverageQuery(String reference) {
+    String[] referenceIdSplit = reference.split("/");
+    String referenceId = referenceIdSplit[referenceIdSplit.length - 1];
+    String query = "Coverage?_id=" + referenceId
+        + "&_include=Coverage:payor";
     return query;
   }
 

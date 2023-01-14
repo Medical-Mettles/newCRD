@@ -7,7 +7,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cdshooks.AlternativeTherapy;
 import org.cdshooks.CoverageRequirements;
 import org.cdshooks.DrugInteraction;
@@ -30,6 +30,9 @@ import org.json.simple.parser.JSONParser;
 import org.opencds.cqf.cql.engine.runtime.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+
 import org.hl7.fhir.r4.model.Coverage;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.MedicationRequest;
@@ -86,6 +89,9 @@ public class CdsResults {
 					coverageRequirements.setRequestId((String) obj.get("requestId"));
 					Resource requestResource = getResourcefromBundle(this.BundleResources,
 							(String) obj.get("requestId"));
+					Gson gson = new Gson();
+					String json = gson.toJson(requestResource);
+					//System.out.println("==================================The request resource is " + json);
 					if (requestResource.fhirType().equals("ServiceRequest")) {
 						ServiceRequest resource = (ServiceRequest) requestResource;
 						coverageRef = resource.getInsurance();
@@ -102,9 +108,13 @@ public class CdsResults {
 					}
 					if (coverageRef != null) {
 						for (Reference ref : coverageRef) {
-							// System.out.println("ref printing: " + ref.getReference());
+							Coverage res = null;
+							if (ref.getReference() != null) {
 							String coverage = ref.getReference().split("Coverage/")[1];
-							Coverage res = (Coverage) getResourcefromBundle(this.BundleResources, coverage);
+								res = (Coverage) getResourcefromBundle(this.BundleResources, coverage);
+							} else {
+								res = (Coverage) getResourcefromBundle(this.BundleResources, null);	
+							}
 							if (res != null) {
 								Reference insurerRef = res.getPayorFirstRep();
 								if (insurerRef != null) {
@@ -259,6 +269,9 @@ public class CdsResults {
 				if (res != null) {
 					return res;
 				}
+			}
+			if (resourceId == null && entry.getResource().fhirType() == "Coverage") {
+				return entry.getResource();
 			}
 			if (entry.getResource().getIdElement() != null) {
 				if (entry.getResource().getIdElement().getIdPart().equals(resourceId)) {

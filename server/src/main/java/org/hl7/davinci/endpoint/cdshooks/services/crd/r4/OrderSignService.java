@@ -80,17 +80,24 @@ public class OrderSignService extends CdsService<OrderSignRequest> {
   @Override
   public Bundle getPrefetchResources(OrderSignRequest request) {
     System.out.println("Calling from sign" );
-
+    String requestType = "device";
     Bundle bundle = request.getPrefetch().getDeviceRequestBundle();
     if (bundle == null){
       bundle = request.getPrefetch().getServiceRequestBundle();
+      requestType = "service";
     }
     if (bundle == null){
       bundle = request.getPrefetch().getMedicationRequestBundle();
+      requestType = "medication";
     }
-    // if (bundle != null) {
-    //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
-    // }
+    for (org.hl7.fhir.r4.model.Bundle.BundleEntryComponent bundleEntryComponent : request.getContext().getDraftOrders().getEntry()) {
+      //System.out.println("------------resource type-------" + bundleEntryComponent.getResource().getResourceType().name());
+      bundle.addEntry(bundleEntryComponent);
+      
+    }
+    if (bundle != null) {
+       return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
+    }
     // bundle = request.getPrefetch().getServiceRequestBundle();
     // if (bundle != null) {
     //   return checkUpdateBundle(bundle,request.getContext().getDraftOrders());
