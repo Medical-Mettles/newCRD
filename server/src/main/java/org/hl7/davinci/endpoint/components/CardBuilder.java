@@ -304,6 +304,7 @@ public class CardBuilder {
                                                     String description,
                                                     boolean isRecommended,
                                                     CoverageGuidance coverageGuidance) {
+    System.out.println("===========Creating a note========");
     Date now = new Date();
     Suggestion requestWithNoteSuggestion = new Suggestion();
 

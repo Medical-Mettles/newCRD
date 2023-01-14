@@ -13,7 +13,7 @@ spring:
       hibernate.dialect: org.hibernate.dialect.H2Dialect
       hibernate.hbm2ddl.auto: create-drop
   profiles:
-    active: localDb
+     active: localDb
 #    active: gitHub
 #    active: cdsConnect
 
@@ -31,6 +31,7 @@ corsOrigins:
   - "http://localhost:3000"
   - "http://localhost:3002"
   - "http://localhost:3005"
+  - "*"
 
 checkPractitionerLocation: false
 

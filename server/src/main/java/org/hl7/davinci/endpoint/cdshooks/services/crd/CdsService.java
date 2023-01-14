@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import javax.validation.Valid;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cdshooks.*;
 import org.hl7.davinci.FhirComponentsT;
 import org.hl7.davinci.PrefetchTemplateElement;
@@ -292,8 +292,8 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
     // Ading card to requestLog
     requestLog.setCardListFromCards(response.getCards());
     requestService.edit(requestLog);
-
-    return response;
+    System.out.println("===========In card response========");
+    return response.extractSystemActions();
   }
 
   private List<Link> createQuestionnaireLinks(requestTypeT request, URL applicationBaseUrl,

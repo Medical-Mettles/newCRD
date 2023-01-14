@@ -40,9 +40,10 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     final CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(myConfig.getCorsOrigins());
+
+    configuration.setAllowedOriginPatterns(myConfig.getCorsOrigins());
     List<String> allowedOrigins = configuration.getAllowedOrigins();
-    allowedOrigins.forEach((n) -> logger.info("CORS Allowed Origin: " + n));
+    //allowedOrigins.forEach((n) -> logger.info("CORS Allowed Origin: " + n));
     configuration.setAllowedMethods(ImmutableList.of("HEAD",
         "GET", "POST", "PUT", "DELETE", "PATCH"));
     // setAllowCredentials(true) is important, otherwise:

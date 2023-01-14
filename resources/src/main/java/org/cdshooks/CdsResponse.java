@@ -12,6 +12,8 @@ public class CdsResponse {
    * buttons, and links using underlined text. REQUIRED
    */
   private List<Card> cards = new ArrayList<Card>();
+  private List<Action> systemActions = new ArrayList<Action>();
+  
 
   /**
    * Add a card.
@@ -30,4 +32,42 @@ public class CdsResponse {
   public void setCards(List<Card> cards) {
     this.cards = cards;
   }
+
+
+  /**
+   * Add a SystemAction
+   * @param cardsItem The card.
+   * @return
+   */
+  public CdsResponse addSystemAction(Action actionItem) {
+    this.systemActions.add(actionItem);
+    return this;
+  }
+
+  public List<Action> getSystemActions() {
+    return systemActions;
+  }
+
+  public void setSystemActions(List<Action> actions) {
+    this.systemActions = actions;
+  }
+
+  public CdsResponse extractSystemActions() {
+    for (Card card : cards) {
+      System.out.println("adding card " + card.getSummary());
+      for (Suggestion suggestion : card.getSuggestions()) {
+        System.out.println("adding suggestion " + suggestion.getLabel());
+        for (Action action : suggestion.getActions()) {
+          System.out.println("adding action " + action.getResourceId());
+          this.addSystemAction(action);
+        }
+      }
+    }
+    return this;
+    
+  }
+
+
+
+
 }
