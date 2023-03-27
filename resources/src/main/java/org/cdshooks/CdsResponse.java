@@ -55,11 +55,13 @@ public class CdsResponse {
   public CdsResponse extractSystemActions() {
     for (Card card : cards) {
       System.out.println("adding card " + card.getSummary());
-      for (Suggestion suggestion : card.getSuggestions()) {
-        System.out.println("adding suggestion " + suggestion.getLabel());
-        for (Action action : suggestion.getActions()) {
-          System.out.println("adding action " + action.getResourceId());
-          this.addSystemAction(action);
+      if (card.getSuggestions() != null) {
+        for (Suggestion suggestion : card.getSuggestions()) {
+          System.out.println("adding suggestion " + suggestion.getLabel());
+          for (Action action : suggestion.getActions()) {
+            System.out.println("adding action " + action.getResourceId());
+            this.addSystemAction(action);
+          }
         }
       }
     }
