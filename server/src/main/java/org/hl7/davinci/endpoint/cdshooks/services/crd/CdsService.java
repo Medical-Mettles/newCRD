@@ -413,12 +413,12 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
       }
     } else {
       JSONObject appContexObject = new JSONObject();
-      jsonObject.put("questionnaire",  questionnaireUri);
-      jsonObject.put("fhirpath", applicationBaseUrl + "/fhir/");
-      jsonObject.put("order", reqResourceId);
-      jsonObject.put("priorauth", (priorAuthRequired ? "true" : "false"));
-      jsonObject.put("filepath", applicationBaseUrl + "/");
-      appContext = JSONObject.escape(jsonObject.toJSONString());
+      appContexObject.put("questionnaire",  questionnaireUri);
+      appContexObject.put("fhirpath", applicationBaseUrl + "/fhir/");
+      appContexObject.put("order", reqResourceId);
+      appContexObject.put("priorauth", (priorAuthRequired ? "true" : "false"));
+      appContexObject.put("filepath", applicationBaseUrl + "/");
+      appContext = JSONObject.escape(appContexObject.toJSONString());
 
     }
 
