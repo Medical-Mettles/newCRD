@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.json.simple.JSONObject;
 
 @Component
 public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
@@ -396,18 +397,29 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
     // IG says, since it should be taken from fhirBase
 
     //Change template to questionnaire and request to order
-    String appContext = "questionnaire=" + questionnaireUri + "&order=" + reqResourceId;
-    appContext = appContext + "&fhirpath=" + applicationBaseUrl + "/fhir/";
-
-    appContext = appContext + "&priorauth=" + (priorAuthRequired ? "true" : "false");
-    appContext = appContext + "&filepath=" + applicationBaseUrl + "/";
+    String appContext = "";
+    
     if (myConfig.getUrlEncodeAppContext()) {
+      appContext = "questionnaire=" + questionnaireUri + "&order=" + reqResourceId;
+      appContext = appContext + "&fhirpath=" + applicationBaseUrl + "/fhir/";
+
+      appContext = appContext + "&priorauth=" + (priorAuthRequired ? "true" : "false");
+      appContext = appContext + "&filepath=" + applicationBaseUrl + "/";
       logger.info("CdsService::smartLinkBuilder: URL encoding appcontext");
       try {
         appContext = URLEncoder.encode(appContext, StandardCharsets.UTF_8.name()).toString();
       } catch (UnsupportedEncodingException e) {
         logger.error("CdsService::smartLinkBuilder: failed to encode URL: " + e.getMessage());
       }
+    } else {
+      JSONObject appContexObject = new JSONObject();
+      jsonObject.put("questionnaire",  questionnaireUri);
+      jsonObject.put("fhirpath", applicationBaseUrl + "/fhir/");
+      jsonObject.put("order", reqResourceId);
+      jsonObject.put("priorauth", (priorAuthRequired ? "true" : "false"));
+      jsonObject.put("filepath", applicationBaseUrl + "/");
+      appContext = JSONObject.escape(jsonObject.toJSONString());
+
     }
 
     logger.info("smarLinkBuilder: appContext: " + appContext);
