@@ -418,7 +418,7 @@ public abstract class CdsService<requestTypeT extends CdsRequest<?, ?>> {
       appContexObject.put("order", reqResourceId);
       appContexObject.put("priorauth", (priorAuthRequired ? "true" : "false"));
       appContexObject.put("filepath", applicationBaseUrl + "/");
-      appContext = JSONObject.escape(appContexObject.toJSONString());
+      appContext = appContexObject.toJSONString();
 
     }
 
